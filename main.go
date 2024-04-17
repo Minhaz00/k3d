@@ -9,6 +9,10 @@ import (
 	"github.com/urfave/cli"
 )
 
+
+// Changes from nabil
+
+// hello minhaz from fazlul
 func createCluster(c *cli.Context) error {
 	port := fmt.Sprintf("%s:%s", c.String("port"), c.String("port"))
 	// image := fmt.Sprintf("rancher/k3s:%s", c.String("version"))
@@ -43,6 +47,19 @@ func createCluster(c *cli.Context) error {
 		return err
 	}
 	log.Printf("SUCCESS: created cluster [%s]", c.String("name"))
+	return nil
+}
+
+func deleteCluster(c *cli.Context) error {
+	cmd := "docker"
+	args := []string{"rm", "-f", c.String("name")}
+	log.Printf("Deleting cluster [%s]", c.String("name"))
+	log.Printf("Running command: %+v", exec.Command(cmd, args...).Args)
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		log.Fatalf("FAILURE: couldn't delete cluster [%s] Err: %+v", c.String("name"), err)
+		return err
+	}
+	log.Printf("SUCCESS: deleted cluster [%s]", c.String("name"))
 	return nil
 }
 

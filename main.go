@@ -46,9 +46,6 @@ func createCluster(c *cli.Context) error {
 	return nil
 }
 
-
-
-
 func main() {
 
 	var clusterName string
@@ -56,6 +53,7 @@ func main() {
 	var volume string
 	var k3sVersion string
 
+	// Creating a command-line application
 	app := cli.NewApp()
 	app.Name = "k3d"
 	app.Usage = "Run k3s in Docker!"
@@ -101,7 +99,7 @@ func main() {
 					Destination: &volume,
 				},
 				cli.StringFlag{
-					Name:        "version",
+					Name: "version",
 					// Value:       "v0.1.0",
 					Value:       "v1.29.4-rc1-k3s1",
 					Usage:       "Choose the k3s image version",
@@ -116,7 +114,7 @@ func main() {
 			},
 			Action: createCluster,
 		},
-		
+
 		{
 			Name:  "stop",
 			Usage: "Stop cluster",

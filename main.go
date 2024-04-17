@@ -8,7 +8,10 @@ import (
 
 	"github.com/urfave/cli"
 )
-//hello minhaz from fazlul
+
+// Changes from nabil
+
+// hello minhaz from fazlul
 func createCluster(c *cli.Context) error {
 	port := fmt.Sprintf("%s:%s", c.String("port"), c.String("port"))
 	// image := fmt.Sprintf("rancher/k3s:%s", c.String("version"))
@@ -58,9 +61,6 @@ func deleteCluster(c *cli.Context) error {
 	log.Printf("SUCCESS: deleted cluster [%s]", c.String("name"))
 	return nil
 }
-
-
-
 
 func main() {
 
@@ -114,7 +114,7 @@ func main() {
 					Destination: &volume,
 				},
 				cli.StringFlag{
-					Name:        "version",
+					Name: "version",
 					// Value:       "v0.1.0",
 					Value:       "v1.29.4-rc1-k3s1",
 					Usage:       "Choose the k3s image version",
@@ -129,7 +129,7 @@ func main() {
 			},
 			Action: createCluster,
 		},
-		
+
 		{
 			Name:  "stop",
 			Usage: "Stop cluster",

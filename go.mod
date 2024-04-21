@@ -2,7 +2,10 @@ module k3d-local
 
 go 1.22.1
 
-require github.com/urfave/cli v1.22.14
+require (
+	github.com/mitchellh/go-homedir v1.1.0
+	github.com/urfave/cli v1.22.14
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

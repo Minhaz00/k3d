@@ -1,12 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	// "fmt"
 	"log"
 	"os"
 	"path"
 
+	dockerClient "github.com/docker/docker/client"
 	"github.com/mitchellh/go-homedir"
+	"github.com/olekukonko/tablewriter"
 )
 
 // createDirIfNotExists checks for the existence of a directory and creates it along with all required parents if not.
@@ -48,7 +51,7 @@ func getClusterDir(name string) (string, error) {
 }
 
 // printClusters prints the names of existing clusters
-func printClusters() {
+func printClusters(all bool) {
 
 	// Retrieve the list of cluster names using getClusters
 	clusters, err := getClusters()
@@ -56,11 +59,31 @@ func printClusters() {
 		log.Fatalf("ERROR: Couldn't list clusters -> %+v", err)
 	}
 
-	fmt.Println("NAME")
-	// TODO: user docker client to get state of cluster
-	for _, cluster := range clusters {
-		fmt.Println(cluster)
+	// Initialize a Docker client to interact with Docker engine APIs.
+	docker, err := dockerClient.NewEnvClient()
+	if err != nil {
+		log.Printf("WARNING: couldn't get docker info -> %+v", err)
 	}
+
+	// Initialize a new tablewriter instance to create a formatted table for displaying cluster information.
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"NAME", "IMAGE", "STATUS"})
+	
+	for _, cluster := range clusters {
+		// fmt.Println(cluster)
+		
+		// Retrieve detailed container information (inspect) for the current cluster
+		containerInfo, _ := docker.ContainerInspect(context.Background(), cluster)
+
+		// Prepare cluster data for the table: name, image, and status.
+		clusterData := []string{cluster, containerInfo.Config.Image, containerInfo.ContainerJSONBase.State.Status}
+
+		if containerInfo.ContainerJSONBase.State.Status == "running" || all {
+			table.Append(clusterData)
+		}
+	}
+	// Render the table to display the formatted cluster information in the console
+	table.Render()
 }
 
 // getClusters returns a list of cluster names which are folder names in the config directory

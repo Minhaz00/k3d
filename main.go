@@ -116,7 +116,7 @@ func startCluster(c *cli.Context) error {
 
 // listing all the directories of all clusters
 func listClusters(c *cli.Context) error {
-	printClusters()
+	printClusters(c.Bool("all"))
 	return nil
 }
 
@@ -142,11 +142,6 @@ func getKubeConfig(c *cli.Context) error {
 }
 
 func main() {
-
-	// var clusterName string
-	// var serverPort int
-	// var volume string
-	// var k3sVersion string
 
 	// App details
 	app := cli.NewApp()
@@ -254,8 +249,14 @@ func main() {
 
 		// list prints a list of created clusters
 		{
-			Name:   "list",
-			Usage:  "List all clusters",
+			Name: "list",
+			Usage: "List all clusters",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name: "all, a",
+					Usage: "Also show non-running clusters",
+				},
+			},
 			Action: listClusters,
 		},
 

@@ -147,7 +147,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "k3d"
 	app.Usage = "Run k3s in Docker!"
-	app.Version = "v0.0.2"
+	app.Version = "v0.1.0"
 	app.Authors = []cli.Author{
 		cli.Author{
 			Name:  "Minhaz",

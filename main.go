@@ -157,7 +157,7 @@ func main() {
 
 	// commands to execute
 	app.Commands = []cli.Command{
-		// check-tools verifies that docker is up and running
+		// check-tools or ct verifies that docker is up and running by by executing the 'docker version' command.
 		{
 			Name:    "check-tools",
 			Aliases: []string{"ct"},
@@ -261,8 +261,9 @@ func main() {
 
 		// list prints a list of created clusters
 		{
-			Name:  "list",
-			Usage: "List all clusters",
+			Name:    "list",
+			Aliases: []string{"ls", "l"},
+			Usage:   "List all clusters",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
 					Name:  "all, a",

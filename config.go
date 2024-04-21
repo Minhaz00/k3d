@@ -60,7 +60,7 @@ func printClusters(all bool) {
 	}
 
 	// Initialize a Docker client to interact with Docker engine APIs.
-	docker, err := dockerClient.NewEnvClient()
+	docker, err := dockerClient.NewClientWithOpts()
 	if err != nil {
 		log.Printf("WARNING: couldn't get docker info -> %+v", err)
 	}
@@ -68,12 +68,15 @@ func printClusters(all bool) {
 	// Initialize a new tablewriter instance to create a formatted table for displaying cluster information.
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"NAME", "IMAGE", "STATUS"})
-	
+
 	for _, cluster := range clusters {
 		// fmt.Println(cluster)
-		
+
 		// Retrieve detailed container information (inspect) for the current cluster
-		containerInfo, _ := docker.ContainerInspect(context.Background(), cluster)
+		containerInfo, err := docker.ContainerInspect(context.Background(), cluster)
+		if err != nil {
+			log.Printf("err -> %+v", err)
+		}
 
 		// Prepare cluster data for the table: name, image, and status.
 		clusterData := []string{cluster, containerInfo.Config.Image, containerInfo.ContainerJSONBase.State.Status}

@@ -61,56 +61,102 @@ func createCluster(c *cli.Context) error {
 // Command: docker rm -f Cluster_name
 func deleteCluster(c *cli.Context) error {
 	cmd := "docker"
-	args := []string{"rm", c.String("name")}
+	args := []string{"rm"}
+	clusters := []string{}
 
-	log.Printf("Deleting cluster [%s]", c.String("name"))
-
-	if err := run(true, cmd, args...); err != nil {
-		log.Printf("WARNING: couldn't delete cluster [%s], trying a force remove now.", c.String("name"))
-
-		//adding -f flag to delete the cluster forcefully
-		args = append(args, "-f")
-		if err := run(true, cmd, args...); err != nil {
-			log.Fatalf("FAILURE: couldn't delete cluster [%s] --> %+v", c.String("name"), err)
-			return err
+	// operate on one or all clusters
+	if !c.Bool("all") {
+		clusters = append(clusters, c.String("name"))
+	} else {
+		clusterList, err := getClusterNames()
+		if err != nil {
+			log.Fatalf("ERROR: `--all` specified, but no clusters were found.")
 		}
+		clusters = append(clusters, clusterList...)
 	}
-	deleteClusterDir(c.String("name"))
-	log.Printf("SUCCESS: deleted cluster [%s]", c.String("name"))
+
+	// remove clusters one by one instead of appending all names to the docker command
+	// this allows for more granular error handling and logging
+	for _, cluster := range clusters {
+		log.Printf("Removing cluster [%s]", cluster)
+		args = append(args, cluster)
+		if err := run(true, cmd, args...); err != nil {
+			log.Printf("WARNING: couldn't delete cluster [%s], trying a force remove now.", cluster)
+			args = args[:len(args)-1] // pop last element from list (name of cluster)
+			args = append(args, "-f", cluster)
+			if err := run(true, cmd, args...); err != nil {
+				log.Printf("FAILURE: couldn't delete cluster [%s] -> %+v", cluster, err)
+			}
+			args = args[:len(args)-1] // pop last element from list (-f flag)
+		}
+		deleteClusterDir(cluster)
+		log.Printf("SUCCESS: removed cluster [%s]", cluster)
+		args = args[:len(args)-1] // pop last element from list (name of last cluster)
+	}
 	return nil
 }
 
 // Command: docker stop Cluster_name
 func stopCluster(c *cli.Context) error {
-
 	cmd := "docker"
-	args := []string{"stop", c.String("name")}
+	args := []string{"stop"}
+	clusters := []string{}
 
-	log.Printf("Stopping cluster [%s]", c.String("name"))
-
-	if err := run(true, cmd, args...); err != nil {
-		log.Fatalf("FAILURE: couldn't stop cluster [%s] --> %+v", c.String("name"), err)
-		return err
+	// operate on one or all clusters
+	if !c.Bool("all") {
+		clusters = append(clusters, c.String("name"))
+	} else {
+		clusterList, err := getClusterNames()
+		if err != nil {
+			log.Fatalf("ERROR: `--all` specified, but no clusters were found.")
+		}
+		clusters = append(clusters, clusterList...)
 	}
 
-	log.Printf("SUCCESS: stopped cluster [%s]", c.String("name"))
+	// stop clusters one by one instead of appending all names to the docker command
+	// this allows for more granular error handling and logging
+	for _, cluster := range clusters {
+		log.Printf("Stopping cluster [%s]", cluster)
+		args = append(args, cluster)
+		if err := run(true, cmd, args...); err != nil {
+			log.Printf("FAILURE: couldn't stop cluster [%s] -> %+v", cluster, err)
+		}
+		log.Printf("SUCCESS: stopped cluster [%s]", cluster)
+		args = args[:len(args)-1] // pop last element from list (name of last cluster)
+	}
 	return nil
 }
 
 // Command: docker start Cluster_name
 func startCluster(c *cli.Context) error {
-
 	cmd := "docker"
-	args := []string{"start", c.String("name")}
+	args := []string{"start"}
+	clusters := []string{}
 
-	log.Printf("Starting cluster [%s]", c.String("name"))
-
-	if err := run(true, cmd, args...); err != nil {
-		log.Fatalf("FAILURE: couldn't start cluster [%s] --> %+v", c.String("name"), err)
-		return err
+	// operate on one or all clusters
+	if !c.Bool("all") {
+		clusters = append(clusters, c.String("name"))
+	} else {
+		clusterList, err := getClusterNames()
+		if err != nil {
+			log.Fatalf("ERROR: `--all` specified, but no clusters were found.")
+		}
+		clusters = append(clusters, clusterList...)
 	}
 
-	log.Printf("SUCCESS: started cluster [%s]", c.String("name"))
+	// start clusters one by one instead of appending all names to the docker command
+	// this allows for more granular error handling and logging
+	for _, cluster := range clusters {
+		log.Printf("Starting cluster [%s]", cluster)
+		args = append(args, cluster)
+		if err := run(true, cmd, args...); err != nil {
+			log.Printf("FAILURE: couldn't start cluster [%s] -> %+v", cluster, err)
+		}
+		log.Printf("SUCCESS: started cluster [%s]", cluster)
+		
+		// pop last element from list (name of last cluster)
+		args = args[:len(args)-1] 
+	}
 	return nil
 }
 

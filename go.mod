@@ -1,4 +1,4 @@
-module k3d-local
+module k3d
 
 go 1.22.1
 

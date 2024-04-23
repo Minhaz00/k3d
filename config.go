@@ -57,7 +57,6 @@ func getClusterDir(name string) (string, error) {
 
 // printClusters prints the names of existing clusters
 func printClusters(all bool) {
-
 	// Retrieve the list of cluster names using getClusterNames
 	clusterNames, err := getClusterNames()
 	if err != nil {
@@ -86,7 +85,6 @@ func printClusters(all bool) {
 
 // getClusterNames returns a list of cluster names which are folder names in the config directory
 func getClusterNames() ([]string, error) {
-
 	// Get the user's home directory
 	homeDir, err := homedir.Dir()
 	if err != nil {

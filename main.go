@@ -4,11 +4,10 @@ import (
 	"log"
 	"os"
 
+	run "github.com/Minhaz00/k3d/cli"
 	"github.com/Minhaz00/k3d/version"
-	"github.com/Minhaz00/k3d/cli"
 	"github.com/urfave/cli"
 )
-
 
 func main() {
 
@@ -32,7 +31,7 @@ func main() {
 			Name:    "check-tools",
 			Aliases: []string{"ct"},
 			Usage:   "Check if docker is running",
-			Action: run.CheckTools,
+			Action:  run.CheckTools,
 		},
 
 		// create creates a new k3s cluster in a container
@@ -69,6 +68,14 @@ func main() {
 					Name:  "wait, w",
 					Usage: "Wait for the cluster to come up",
 				},
+				cli.StringSliceFlag{
+					Name:  "server-arg, x",
+					Usage: "Pass an additional argument to k3s server (new flag per argument)",
+				},
+				cli.StringSliceFlag{
+					Name:  "env, e",
+					Usage: "Pass an additional environment variable (new flag per variable)",
+				},
 			},
 			Action: run.CreateCluster,
 		},
@@ -76,7 +83,7 @@ func main() {
 		// delete deletes an existing k3s cluster (remove container and cluster directory)
 		{
 			Name:    "delete",
-			Aliases: []string{"d"},
+			Aliases: []string{"d", "del"},
 			Usage:   "Delete cluster",
 			Flags: []cli.Flag{
 				cli.StringFlag{

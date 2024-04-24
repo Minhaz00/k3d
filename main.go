@@ -15,7 +15,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "k3d"
 	app.Usage = "Run k3s in Docker!"
-	// app.Version = "v0.1.0"4
+	// app.Version = "v0.3.0"
 	app.Version = version.GetVersion()
 	app.Authors = []cli.Author{
 		cli.Author{
@@ -47,7 +47,7 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:  "volume, v",
-					Usage: "Mount a volume into the cluster node (Docker notation: `source:destination`)",
+					Usage: "Mount one or more volumes into the cluster node (Docker notation: `source:destination[,source:destination]`)",
 				},
 				cli.StringFlag{
 					Name:  "version",
@@ -75,6 +75,11 @@ func main() {
 				cli.StringSliceFlag{
 					Name:  "env, e",
 					Usage: "Pass an additional environment variable (new flag per variable)",
+				},
+				cli.IntFlag{
+					Name:  "workers",
+					Value: 0,
+					Usage: "Specify how many worker nodes you want to spawn",
 				},
 			},
 			Action: run.CreateCluster,
@@ -165,6 +170,14 @@ func main() {
 				},
 			},
 			Action: run.GetKubeConfig,
+		},
+	}
+
+
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name: "verbose",
+			Usage: "Enable verbose output",
 		},
 	}
 

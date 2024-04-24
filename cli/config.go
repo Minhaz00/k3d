@@ -2,10 +2,14 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"path"
+	"strconv"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	dockerClient "github.com/docker/docker/client"
 	"github.com/mitchellh/go-homedir"
 	"github.com/olekukonko/tablewriter"
@@ -15,6 +19,8 @@ type cluster struct {
 	name   string
 	image  string
 	status string
+	ports  []string
+	id     string
 }
 
 // createDirIfNotExists checks for the existence of a directory and creates it along with all required parents if not.
@@ -83,7 +89,7 @@ func printClusters(all bool) {
 	table.Render()
 }
 
-// getClusterNames returns a list of cluster names which are folder names in the config directory
+// getClusterNames returns a list of cluster   names which are folder names in the config directory
 func getClusterNames() ([]string, error) {
 	// Get the user's home directory
 	homeDir, err := homedir.Dir()
@@ -115,27 +121,54 @@ func getClusterNames() ([]string, error) {
 	return clusters, nil
 }
 
-
 func getCluster(name string) (cluster, error) {
 	cluster := cluster{
-		name: name,
-		image: "UNKNOWN",
+		name:   name,
+		image:  "UNKNOWN",
 		status: "UNKNOWN",
+		ports:  []string{"UNKNOWN"},
+		id:     "UNKNOWN",
 	}
 
+	// Creates a background context and initializes a Docker client 
+	ctx := context.Background()
 	docker, err := dockerClient.NewClientWithOpts()
 	if err != nil {
 		log.Printf("ERROR: couldn't create docker client -> %+v", err)
 		return cluster, err
 	}
 
-	containerInfo, err := docker.ContainerInspect(context.Background(), cluster.name)
+	// Sets up Docker API filters (filters) to find containers with specific labels
+	filters := filters.NewArgs()
+	filters.Add("label", "app=k3d")
+	filters.Add("label", fmt.Sprintf("cluster=%s", cluster.name))
+	filters.Add("label", "component=server")
+
+	containerList, err := docker.ContainerList(ctx, container.ListOptions{
+		All:     true,
+		Filters: filters,
+	})
 	if err != nil {
-		log.Printf("WARNING: couldn't get docker info for [%s] -> %+v", cluster.name, err)
-	} else {
-		cluster.image = containerInfo.Config.Image
-		cluster.status = containerInfo.ContainerJSONBase.State.Status
+		return cluster, fmt.Errorf("WARNING: couldn't get docker info for [%s] -> %+v", cluster.name, err)
 	}
+
+	// // Print information about each container
+	// for _, container := range containerList {
+	// 	fmt.Printf("Container ID: %s\n", container.ID)
+	// 	fmt.Printf("Image: %s\n", container.Image)
+	// 	fmt.Printf("Command: %s\n", container.Command)
+	// 	fmt.Printf("Status: %s\n", container.Status)
+	// 	fmt.Println("----------")
+	// }
+
+	container := containerList[0]
+	cluster.image = container.Image
+	cluster.status = container.State
+	for _, port := range container.Ports {
+		cluster.ports = append(cluster.ports, strconv.Itoa(int(port.PublicPort)))
+	}
+	cluster.id = container.ID
 
 	return cluster, nil
 }
+

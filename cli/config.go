@@ -155,23 +155,22 @@ func getClusters() (map[string]cluster, error) {
 
 	// map for cluster [clusterName -> cluster struct]
 	clusters := make(map[string]cluster)
-	
-	// Iterate Over Server Containers	
-	// List worker containers for each server (cluster)
-	for _, server := range k3dServers {
 
-		// modify filters for finding workers
+	// don't filter for servers but for workers now
+	filters.Del("label", "component=server")
+	filters.Add("label", "component=worker")
+	
+	// for all servers created by k3d, get workers and cluster information
+	for _, server := range k3dServers {
 		filters.Add("label", fmt.Sprintf("cluster=%s", server.Labels["cluster"]))
-		filters.Del("label", "component=server")
-		filters.Add("label", "component=worker")
 		
-		// retrieve a list of worker containers (workers) based on the updated filters
+		// retrieve a list of worker containers (workers) 
 		workers, err := docker.ContainerList(ctx, container.ListOptions{
 			All:     true,
 			Filters: filters,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("WARNING: couldn't list worker containers for cluster %s\n%+v", server.Labels["cluster"], err)
+			log.Printf("WARNING: couldn't get worker containers for cluster %s\n%+v", server.Labels["cluster"], err)
 		}
 
 		// Extract server ports (serverPorts) from container port mappings (server.Ports)
@@ -189,6 +188,9 @@ func getClusters() (map[string]cluster, error) {
 			server:      server,
 			workers:     workers,
 		}
+
+		// clear label filters before searching for next cluster
+		filters.Del("label", fmt.Sprintf("cluster=%s", server.Labels["cluster"]))
 	}
 	return clusters, nil
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 )
@@ -68,16 +69,26 @@ func createServer(verbose bool, image string, port string, args []string, env []
 		hostConfig.Binds = volumes
 	}
 
-	// create a container with specified configuration
-	resp, err := docker.ContainerCreate(ctx, &container.Config{		
-		Image: image,												// specifies the Docker image to use for the container 
+	networkingConfig := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			name: &network.EndpointSettings{
+				Aliases: []string{containerName},
+			},
+		},
+	}
+
+	containerConfig := &container.Config{		
+		Image: image,												
 		Cmd:   append([]string{"server"}, args...),               	// sets the command to be executed in the container
 		ExposedPorts: nat.PortSet{									// defines the ports to expose from the container to the host. 
 			containerPort: struct{}{},
 		},
 		Env:    env,
 		Labels: containerLabels,
-	}, hostConfig, nil, nil, containerName)
+	}
+
+	// create a container with specified configuration
+	resp, err := docker.ContainerCreate(ctx, containerConfig, hostConfig, networkingConfig, nil, containerName)
 	if err != nil {
 		return "", fmt.Errorf("ERROR: couldn't create container %s\n%+v", containerName, err)
 	}
@@ -131,11 +142,21 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 		hostConfig.Binds = volumes
 	}
 
-	resp, err := docker.ContainerCreate(ctx, &container.Config{
+	networkingConfig := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			name: &network.EndpointSettings{
+				Aliases: []string{containerName},
+			},
+		},
+	}
+
+	containerConfig := &container.Config{
 		Image:  image,
 		Env:    env,
 		Labels: containerLabels,
-	}, hostConfig, nil, nil, containerName)
+	}
+
+	resp, err := docker.ContainerCreate(ctx, containerConfig, hostConfig, networkingConfig, nil, containerName)
 	if err != nil {
 		return "", fmt.Errorf("ERROR: couldn't create container %s\n%+v", containerName, err)
 	}

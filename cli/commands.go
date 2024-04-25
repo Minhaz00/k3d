@@ -26,7 +26,7 @@ func CheckTools(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Ping the Docker daemon to check its availability
 	ping, err := docker.Ping(ctx)
 	if err != nil {
@@ -40,6 +40,13 @@ func CheckTools(c *cli.Context) error {
 
 // CreateCluster creates a new single-node cluster container and initializes the cluster directory
 func CreateCluster(c *cli.Context) error {
+
+	// create cluster network
+	networkID, err := createClusterNetwork(c.String("name"))
+	if err != nil {
+		return err
+	}
+	log.Printf("Created cluster network with ID %s", networkID)
 
 	if c.IsSet("timeout") && !c.IsSet("wait") {
 		return errors.New("cannot use --timeout flag without --wait flag")
@@ -83,7 +90,6 @@ func CreateCluster(c *cli.Context) error {
 		return fmt.Errorf("ERROR: couldn't create docker client\n%+v", err)
 	}
 
-	
 	// wait for k3s to be up and running if we want it
 	// Get the current time to use as a reference point
 	start := time.Now()
@@ -102,7 +108,7 @@ func CreateCluster(c *cli.Context) error {
 		}
 
 		out, err := docker.ContainerLogs(ctx, dockerID, container.LogsOptions{
-			ShowStdout: true, 
+			ShowStdout: true,
 			ShowStderr: true,
 		})
 		if err != nil {
@@ -156,10 +162,9 @@ func CreateCluster(c *cli.Context) error {
 	return nil
 }
 
-
 // DeleteCluster removes the cluster container and its cluster directory
 func DeleteCluster(c *cli.Context) error {
-	
+
 	// operate on one or all clusters
 	clusters := make(map[string]cluster)
 	if !c.Bool("all") {
@@ -194,11 +199,16 @@ func DeleteCluster(c *cli.Context) error {
 				}
 			}
 		}
-		
+
 		log.Println("...Removing server")
 		deleteClusterDir(cluster.name)
 		if err := removeContainer(cluster.server.ID); err != nil {
 			return fmt.Errorf("ERROR: Couldn't remove server for cluster %s\n%+v", cluster.name, err)
+		}
+
+		// delete the corresponding cluster network
+		if err := deleteClusterNetwork(cluster.name); err != nil {
+			log.Printf("WARNING: couldn't delete cluster network for cluster %s\n%+v", cluster.name, err)
 		}
 
 		log.Printf("SUCCESS: removed cluster [%s]", cluster.name)
@@ -290,7 +300,6 @@ func ListClusters(c *cli.Context) error {
 	return nil
 }
 
-
 // getKubeConfig grabs the kubeconfig from the running cluster and prints the path to stdout
 func GetKubeConfig(c *cli.Context) error {
 	// Construct the source path within the Docker container where the kubeconfig file is located
@@ -309,4 +318,4 @@ func GetKubeConfig(c *cli.Context) error {
 	// Prints the path of the copied kubeconfig file (kubeconfig.yaml) on the local host.
 	fmt.Printf("%s\n", path.Join(destPath, "Kubeconfig.yaml"))
 	return nil
-}  
+}

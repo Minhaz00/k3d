@@ -14,10 +14,10 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
-// This function create and start Docker containers for clusters 
+// This function create and start Docker containers for clusters
 func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string) (string, error) {
+	log.Printf("Creating server using %s...\n", image)
 	
-	// Creates a background context and initializes a Docker client
 	ctx := context.Background()
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
@@ -33,6 +33,11 @@ func createServer(verbose bool, image string, port string, args []string, env []
 	// The verbose flag determines whether to copy the output of the pull operation to os.Stdout.
 	if verbose {
 		_, err := io.Copy(os.Stdout, reader) 
+		if err != nil {
+			log.Printf("WARNING: couldn't get docker output\n%+v", err)
+		}
+	} else {
+		_, err := io.Copy(io.Discard, reader)
 		if err != nil {
 			log.Printf("WARNING: couldn't get docker output\n%+v", err)
 		}

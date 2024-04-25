@@ -65,7 +65,7 @@ func CreateCluster(c *cli.Context) error {
 	// createServer creates a container and returns the container Id
 	log.Printf("Creating cluster [%s]", c.String("name"))
 	dockerID, err := createServer(
-		c.Bool("verbose"),
+		c.GlobalBool("verbose"),
 		fmt.Sprintf("docker.io/rancher/k3s:%s", c.String("version")),
 		c.String("port"),
 		k3sServerArgs,

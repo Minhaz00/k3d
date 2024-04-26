@@ -219,78 +219,104 @@ func DeleteCluster(c *cli.Context) error {
 
 // StopCluster stops a running cluster container (restartable)
 func StopCluster(c *cli.Context) error {
+	
+	// operate on one or all cluster
+	clusters := make(map[string]cluster)
+	if !c.Bool("all") {
+		cluster, err := getCluster((c.String("name")))
+		if err != nil {
+			return err
+		}
+		clusters[c.String("name")] = cluster
+	} else {
+		clusterMap, err := getClusters()
+		if err != nil {
+			return fmt.Errorf("ERROR: `--all` specified, but no clusters were found\n%+v", err)
+		}
+		// copy clusterMap
+		for key, value := range clusterMap {
+			clusters[key] = value
+		}
+	}
+
 	ctx := context.Background()
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
 		return fmt.Errorf("ERROR: couldn't create docker client\n%+v", err)
 	}
 
-	clusterNames := []string{}
-
-	// operate on one or all clusters
-	if !c.Bool("all") {
-		clusterNames = append(clusterNames, c.String("name"))
-	} else {
-		clusterList, err := getClusterNames()
-		if err != nil {
-			return fmt.Errorf("ERROR: `--all` specified, but no clusters were found\n%+v", err)
-		}
-		clusterNames = append(clusterNames, clusterList...)
-	}
-
 	// stop clusters one by one instead of appending all names to the docker command
 	// this allows for more granular error handling and logging
-	for _, name := range clusterNames {
-		log.Printf("Stopping cluster [%s]", name)
-		cluster, err := getCluster(name)
-		if err != nil {
-			log.Printf("WARNING: couldn't get docker info for %s", name)
-			continue
+	for _, cluster := range clusters {
+		log.Printf("Stopping cluster [%s]", cluster.name)
+		if len(cluster.workers) > 0 {
+			log.Printf("...Stopping %d workers\n", len(cluster.workers))
+			for _, worker := range cluster.workers {
+				if err := docker.ContainerStop(ctx, worker.ID, container.StopOptions{}); err != nil {
+					log.Println(err)
+					continue
+				}
+			}
 		}
+		log.Println("...Stopping server")
 		if err := docker.ContainerStop(ctx, cluster.server.ID, container.StopOptions{}); err != nil {
-			fmt.Printf("WARNING: couldn't stop cluster %s\n%+v", cluster.name, err)
-			continue
+			return fmt.Errorf("ERROR: Couldn't stop server for cluster %s\n%+v", cluster.name, err)
 		}
-		log.Printf("SUCCESS: stopped cluster [%s]", cluster.name)
+ 
+		log.Printf("SUCCESS: Stopped cluster [%s]", cluster.name)
 	}
 	return nil
 }
 
 // StartCluster starts a stopped cluster container
 func StartCluster(c *cli.Context) error {
+	
+	// operate on one or all cluster
+	clusters := make(map[string]cluster)
+	if !c.Bool("all") {
+		cluster, err := getCluster((c.String("name")))
+		if err != nil {
+			return err
+		}
+		clusters[c.String("name")] = cluster
+	} else {
+		clusterMap, err := getClusters()
+		if err != nil {
+			return fmt.Errorf("ERROR: `--all` specified, but no clusters were found\n%+v", err)
+		}
+		// copy clusterMap
+		for key, value := range clusterMap {
+			clusters[key] = value
+		}
+	}
+	
 	ctx := context.Background()
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
 		return fmt.Errorf("ERROR: couldn't create docker client\n%+v", err)
 	}
 
-	clusterNames := []string{}
-
-	// operate on one or all clusters
-	if !c.Bool("all") {
-		clusterNames = append(clusterNames, c.String("name"))
-	} else {
-		clusterList, err := getClusterNames()
-		if err != nil {
-			return fmt.Errorf("ERROR: `--all` specified, but no clusters were found\n%+v", err)
-		}
-		clusterNames = append(clusterNames, clusterList...)
-	}
-
 	// start clusters one by one instead of appending all names to the docker command
 	// this allows for more granular error handling and logging
-	for _, name := range clusterNames {
-		log.Printf("Starting cluster [%s]", name)
-		cluster, err := getCluster(name)
-		if err != nil {
-			log.Printf("WARNING: couldn't get docker info for %s", name)
-			continue
-		}
+	for _, cluster := range clusters {
+		log.Printf("Starting cluster [%s]", cluster.name)
+
+		log.Println("...Starting server")
 		if err := docker.ContainerStart(ctx, cluster.server.ID, container.StartOptions{}); err != nil {
-			fmt.Printf("WARNING: couldn't start cluster %s\n%+v", cluster.name, err)
-			continue
+			return fmt.Errorf("ERROR: Couldn't start server for cluster %s\n%+v", cluster.name, err)
 		}
-		log.Printf("SUCCESS: started cluster [%s]", cluster.name)
+
+		if len(cluster.workers) > 0 {
+			log.Printf("...Starting %d workers\n", len(cluster.workers))
+			for _, worker := range cluster.workers {
+				if err := docker.ContainerStart(ctx, worker.ID, container.StartOptions{}); err != nil {
+					log.Println(err)
+					continue
+				}
+			}
+		}
+
+		log.Printf("SUCCESS: Started cluster [%s]", cluster.name)
 	}
 	return nil
 }

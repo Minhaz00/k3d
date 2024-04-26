@@ -98,41 +98,9 @@ func printClusters(all bool) {
 	table.Render()
 }
 
-// getClusterNames returns a list of cluster   names which are folder names in the config directory
-func getClusterNames() ([]string, error) {
-	// Get the user's home directory
-	homeDir, err := homedir.Dir()
-	if err != nil {
-		log.Printf("ERROR: Couldn't get user's home directory")
-		return nil, err
-	}
-
-	// Construct the path to the k3d configuration directory within the user's home directory
-	configDir := path.Join(homeDir, ".config", "k3d")
-
-	// Read the contents of the k3d configuration directory
-	files, err := os.ReadDir(configDir)
-	if err != nil {
-		log.Printf("ERROR: Couldn't list files in [%s]", configDir)
-		return nil, err
-	}
-
-	// Initialize a slice to hold cluster names
-	clusters := []string{}
-
-	// Iterate through the files/directories in the config directory
-	for _, file := range files {
-		// as we are returning the names of the clusters, we only need to check for directories
-		if file.IsDir() {
-			clusters = append(clusters, file.Name())
-		}
-	}
-	return clusters, nil
-}
-
 func getClusters() (map[string]cluster, error) {
 
-	// Creates a background context and initializes a Docker client 
+	// Creates a background context and initializes a Docker client
 	ctx := context.Background()
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
@@ -159,12 +127,12 @@ func getClusters() (map[string]cluster, error) {
 	// don't filter for servers but for workers now
 	filters.Del("label", "component=server")
 	filters.Add("label", "component=worker")
-	
+
 	// for all servers created by k3d, get workers and cluster information
 	for _, server := range k3dServers {
 		filters.Add("label", fmt.Sprintf("cluster=%s", server.Labels["cluster"]))
-		
-		// retrieve a list of worker containers (workers) 
+
+		// retrieve a list of worker containers (workers)
 		workers, err := docker.ContainerList(ctx, container.ListOptions{
 			All:     true,
 			Filters: filters,
@@ -179,7 +147,7 @@ func getClusters() (map[string]cluster, error) {
 			serverPorts = append(serverPorts, strconv.Itoa(int(port.PublicPort)))
 		}
 
-		// Populate cluster information (cluster) with relevant attributes    
+		// Populate cluster information (cluster) with relevant attributes
 		clusters[server.Labels["cluster"]] = cluster{
 			name:        server.Labels["cluster"],
 			image:       server.Image,

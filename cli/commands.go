@@ -5,14 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/urfave/cli"
 )
@@ -302,20 +303,58 @@ func ListClusters(c *cli.Context) error {
 
 // getKubeConfig grabs the kubeconfig from the running cluster and prints the path to stdout
 func GetKubeConfig(c *cli.Context) error {
-	// Construct the source path within the Docker container where the kubeconfig file is located
-	sourcePath := fmt.Sprintf("k3d-%s-server:/output/kubeconfig.yaml", c.String("name"))
-
-	// Get the destination directory on the local host where the kubeconfig file will be copied
-	destPath, _ := getClusterDir(c.String("name"))
-
-	cmd := "docker"
-	args := []string{"cp", sourcePath, destPath}
-
-	if err := runCommand(c.GlobalBool("verbose"), cmd, args...); err != nil {
-		return fmt.Errorf("ERROR: Couldn't get kubeconfig for cluster [%s]\n%+v", fmt.Sprintf("k3d-%s-server", c.String("name")), err)
+	ctx := context.Background()
+	docker, err := client.NewClientWithOpts()
+	if err != nil {
+		return err
 	}
 
-	// Prints the path of the copied kubeconfig file (kubeconfig.yaml) on the local host.
-	fmt.Printf("%s\n", path.Join(destPath, "Kubeconfig.yaml"))
+	filters := filters.NewArgs()
+	filters.Add("label", "app=k3d")
+	filters.Add("label", fmt.Sprintf("cluster=%s", c.String("name")))
+	filters.Add("label", "component=server")
+	server, err := docker.ContainerList(ctx, container.ListOptions{
+		Filters: filters,
+	})
+	if err != nil {
+		return fmt.Errorf("ERROR: couldn't get server container for cluster %s\n%+v", c.String("name"), err)
+	}
+
+	// get kubeconfig file from container
+	reader, _, err := docker.CopyFromContainer(ctx, server[0].ID, "/output/kubeconfig.yaml")
+	if err != nil {
+		return fmt.Errorf("ERROR: couldn't copy kubeconfig.yaml from server container %s\n%+v", server[0].ID, err)
+	}
+	defer reader.Close()
+
+	// read contents of that file
+	readBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return fmt.Errorf("ERROR: couldn't read kubeconfig from container\n%+v", err)
+	}
+
+	// create destination kubeconfig file
+	clusterDir, err := getClusterDir(c.String("name"))
+	destPath := fmt.Sprintf("%s/kubeconfig.yaml", clusterDir)
+	if err != nil {
+		return err
+	}
+
+	kubeconfigfile, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("ERROR: couldn't create kubeconfig.yaml in %s\n%+v", clusterDir, err)
+	}
+	defer kubeconfigfile.Close()
+
+	// write to file, skipping the first 512 bytes which contain file metadata and trimming any NULL characters
+	_, err = kubeconfigfile.Write(bytes.Trim(readBytes[512:], "\x00"))
+	if err != nil {
+		return fmt.Errorf("ERROR: couldn't write to kubeconfig.yaml\n%+v", err)
+	}
+
+	// output kubeconfig file path to stdout
+	fmt.Println(destPath)
+
+
 	return nil
 }

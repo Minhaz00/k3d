@@ -1,5 +1,9 @@
 package run
 
+/*
+ * This file contains the "backend" functionality for the CLI commands (and flags)
+ */
+
 import (
 	"bytes"
 	"context"
@@ -18,7 +22,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-// CheckTools checks if the installed tools work correctly
+
+// CheckTools checks if the docker API server is responding
 func CheckTools(c *cli.Context) error {
 	log.Print("Checking docker...")
 
@@ -91,14 +96,15 @@ func CreateCluster(c *cli.Context) error {
 		return fmt.Errorf("ERROR: couldn't create docker client\n%+v", err)
 	}
 
-	// wait for k3s to be up and running if we want it
-	// Get the current time to use as a reference point
+	// Wait for k3s to be up and running if wanted.
+	// We're simply scanning the container logs for a line that tells us that everything's up and running
+	// TODO: also wait for worker nodes
 	start := time.Now()
 	// Retrieve the timeout duration from the command-line flags and convert it to a time.Duration
 	timeout := time.Duration(c.Int("timeout")) * time.Second
 	// Loop continues as long as the "wait" flag is set in the command-line context (c)
 	for c.IsSet("wait") {
-		// Check if the timeout duration has not elapsed and the current time is before the timeout deadline
+		// not running after timeout exceeded? Rollback and delete everything.
 		if timeout != 0 && !time.Now().After(start.Add(timeout)) {
 			// If timeout is reached, attempt to delete the cluster and handle any error
 			err := DeleteCluster(c)
@@ -108,6 +114,7 @@ func CreateCluster(c *cli.Context) error {
 			return errors.New("cluster creation exceeded specified timeout")
 		}
 
+		// scan container logs for a line that tells us that the required services are up and running
 		out, err := docker.ContainerLogs(ctx, dockerID, container.LogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
@@ -132,9 +139,12 @@ func CreateCluster(c *cli.Context) error {
 		time.Sleep(1 * time.Second)
 	}
 
+	// create the directory where we will put the kubeconfig file by default (when running `k3d get-config`)
+	// TODO: this can probably be moved to `k3d get-config` or be removed in a different approach
 	createClusterDir(c.String("name"))
 
-	// worker nodes
+	// spin up the worker nodes
+	// TODO: do this concurrently in different goroutines
 	if c.Int("workers") > 0 {
 		k3sWorkerArgs := []string{}
 		env := []string{k3sClusterSecret}
@@ -165,7 +175,7 @@ func CreateCluster(c *cli.Context) error {
 	return nil
 }
 
-// DeleteCluster removes the cluster container and its cluster directory
+// DeleteCluster removes the containers belonging to a cluster and its local directory
 func DeleteCluster(c *cli.Context) error {
 
 	// operate on one or all clusters
@@ -194,6 +204,7 @@ func DeleteCluster(c *cli.Context) error {
 
 		// delete the workers of the cluster fisrt
 		if len(cluster.workers) > 0 {
+			// TODO: this could be done in goroutines
 			log.Printf("...Removing %d workers\n", len(cluster.workers))
 			for _, worker := range cluster.workers {
 				if err := removeContainer(worker.ID); err != nil {
@@ -345,7 +356,11 @@ func GetKubeConfig(c *cli.Context) error {
 		Filters: filters,
 	})
 	if err != nil {
-		return fmt.Errorf("ERROR: couldn't get server container for cluster %s\n%+v", c.String("name"), err)
+		return fmt.Errorf("failed to get server container for cluster %s\n%+v", c.String("name"), err)
+	}
+
+	if len(server) == 0 {
+		return fmt.Errorf("no server container for cluster %s", c.String("name"))
 	}
 
 	// get kubeconfig file from container
@@ -386,3 +401,5 @@ func GetKubeConfig(c *cli.Context) error {
 
 	return nil
 }
+
+

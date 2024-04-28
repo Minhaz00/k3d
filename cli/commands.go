@@ -64,9 +64,20 @@ func CreateCluster(c *cli.Context) error {
 		env = append(env, c.StringSlice("env")...)
 	}
 	k3sClusterSecret := ""
+	k3sToken := "" //////////////////////
+
+
 	if c.Int("workers") > 0 {
 		k3sClusterSecret = fmt.Sprintf("K3S_CLUSTER_SECRET=%s", GenerateRandomString(20))
 		env = append(env, k3sClusterSecret)
+		
+		
+		
+		k3sToken = fmt.Sprintf("K3S_TOKEN=%s", GenerateRandomString(20))
+		env = append(env, k3sToken)
+
+
+
 	}
 
 	// k3s server arguments
@@ -147,7 +158,7 @@ func CreateCluster(c *cli.Context) error {
 	// TODO: do this concurrently in different goroutines
 	if c.Int("workers") > 0 {
 		k3sWorkerArgs := []string{}
-		env := []string{k3sClusterSecret}
+		env := []string{k3sClusterSecret, k3sToken}
 		log.Printf("Booting %s workers for cluster %s", strconv.Itoa(c.Int("workers")), c.String("name"))
 		for i := 0; i < c.Int("workers"); i++ {
 			workerID, err := createWorker(

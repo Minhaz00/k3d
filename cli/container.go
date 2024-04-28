@@ -22,15 +22,14 @@ import (
 
 
 func startContainer(verbose bool, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (string, error) {
+	
 	ctx := context.Background()
-
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
 		return "", fmt.Errorf("ERROR: couldn't create docker client\n%+v", err)
 	}
 
-	log.Printf("Pulling image %s...\n", config.Image)
-	
+	log.Printf("Pulling image %s...\n", config.Image)	
 	reader, err := docker.ImagePull(ctx, config.Image, image.PullOptions{})
 	if err != nil {
 		return "", fmt.Errorf("ERROR: couldn't pull image %s\n%+v", config.Image, err)

@@ -50,7 +50,7 @@ func main() {
 					Usage: "Mount one or more volumes into every node of the cluster (Docker notation: `source:destination[,source:destination]`)",
 				},
 				cli.StringFlag{
-					Name:  "version",
+					Name:  "version, tag",
 					// Value: "v1.29.4-rc1-k3s1",
 					Value: version.GetK3sVersion(),
 					Usage: "Choose the k3s image version",
@@ -68,6 +68,11 @@ func main() {
 				cli.BoolFlag{
 					Name:  "wait, w",
 					Usage: "Wait for the cluster to come up before returning",
+				},
+				cli.StringFlag{
+					Name:  "image, i",
+					Usage: "Specify a k3s image (repo only)",
+					Value: "docker.io/rancher/k3s",
 				},
 				cli.StringSliceFlag{
 					Name:  "server-arg, x",

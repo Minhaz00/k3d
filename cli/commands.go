@@ -82,7 +82,7 @@ func CreateCluster(c *cli.Context) error {
 	log.Printf("Creating cluster [%s]", c.String("name"))
 	dockerID, err := createServer(
 		c.GlobalBool("verbose"),
-		fmt.Sprintf("docker.io/rancher/k3s:%s", c.String("version")),
+		fmt.Sprintf("%s:%s", c.String("image"), c.String("version")),
 		c.String("port"),
 		k3sServerArgs,
 		env,
@@ -155,7 +155,7 @@ func CreateCluster(c *cli.Context) error {
 		for i := 0; i < c.Int("workers"); i++ {
 			workerID, err := createWorker(
 				c.GlobalBool("verbose"),
-				fmt.Sprintf("docker.io/rancher/k3s:%s", c.String("version")),
+				fmt.Sprintf("%s:%s", c.String("image"), c.String("version")),
 				k3sWorkerArgs,
 				env,
 				c.String("name"),

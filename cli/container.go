@@ -14,22 +14,21 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	"github.com/docker/docker/api/types/image"
 )
 
-
 func startContainer(verbose bool, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (string, error) {
-	
+
 	ctx := context.Background()
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
 		return "", fmt.Errorf("ERROR: couldn't create docker client\n%+v", err)
 	}
 
-	log.Printf("Pulling image %s...\n", config.Image)	
+	log.Printf("Pulling image %s...\n", config.Image)
 	reader, err := docker.ImagePull(ctx, config.Image, image.PullOptions{})
 	if err != nil {
 		return "", fmt.Errorf("ERROR: couldn't pull image %s\n%+v", config.Image, err)
@@ -57,7 +56,6 @@ func startContainer(verbose bool, config *container.Config, hostConfig *containe
 	}
 	return resp.ID, nil
 }
-
 
 // This function create and start Docker containers for clusters
 func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string) (string, error) {
@@ -96,10 +94,11 @@ func createServer(verbose bool, image string, port string, args []string, env []
 		},
 	}
 
-	containerConfig := &container.Config{		
-		Image: image,												
-		Cmd:   append([]string{"server"}, args...),               	// sets the command to be executed in the container
-		ExposedPorts: nat.PortSet{									// defines the ports to expose from the container to the host. 
+	containerConfig := &container.Config{
+		Hostname: containerName,
+		Image:    image,
+		Cmd:      append([]string{"server"}, args...), // sets the command to be executed in the container
+		ExposedPorts: nat.PortSet{ // defines the ports to expose from the container to the host.
 			containerPort: struct{}{},
 		},
 		Env:    env,
@@ -115,7 +114,7 @@ func createServer(verbose bool, image string, port string, args []string, env []
 
 }
 
-// This function create and start Docker containers for workers 
+// This function create and start Docker containers for workers
 func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix string, serverPort string) (string, error) {
 
 	containerLabels := make(map[string]string)
@@ -125,9 +124,9 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 	containerLabels["cluster"] = name
 
 	containerName := fmt.Sprintf("k3d-%s-worker-%s", name, postfix)
-	
+
 	env = append(env, fmt.Sprintf("K3S_URL=https://k3d-%s-server:%s", name, serverPort))
-	
+
 	hostConfig := &container.HostConfig{
 		Tmpfs: map[string]string{
 			"/run":     "",
@@ -149,9 +148,10 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 	}
 
 	containerConfig := &container.Config{
-		Image:  image,
-		Env:    env,
-		Labels: containerLabels,
+		Hostname: containerName,
+		Image:    image,
+		Env:      env,
+		Labels:   containerLabels,
 	}
 
 	id, err := startContainer(verbose, containerConfig, hostConfig, networkingConfig, containerName)
@@ -161,7 +161,6 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 
 	return id, nil
 }
-
 
 // removeContainer tries to rm a container, selected by Docker ID, and does a rm -f if it fails (e.g. if container is still running)
 func removeContainer(ID string) error {

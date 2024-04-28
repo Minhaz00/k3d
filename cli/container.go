@@ -191,7 +191,7 @@ func createServer(verbose bool, image string, port string, args []string, env []
 }
 
 // This function create and start Docker containers for workers
-func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix string, serverPort string) (string, error) {
+func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix int, serverPort string) (string, error) {
 
 	containerLabels := make(map[string]string)
 	containerLabels["app"] = "k3d"
@@ -199,7 +199,7 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 	containerLabels["created"] = time.Now().Format("2006-01-02 15:04:05")
 	containerLabels["cluster"] = name
 
-	containerName := fmt.Sprintf("k3d-%s-worker-%s", name, postfix)
+	containerName := fmt.Sprintf("k3d-%s-worker-%d", name, postfix)
 
 	env = append(env, fmt.Sprintf("K3S_URL=https://k3d-%s-server:%s", name, serverPort))
 

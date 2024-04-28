@@ -186,7 +186,7 @@ func CreateCluster(c *cli.Context) error {
 				env,
 				c.String("name"),
 				strings.Split(c.String("volume"), ","),
-				strconv.Itoa(i),
+				i,
 				c.String("port"),
 			)
 			if err != nil {

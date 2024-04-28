@@ -20,6 +20,85 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
+type PublishedPorts struct {
+	ExposedPorts map[nat.Port]struct{}
+	PortBindings   map[nat.Port][]nat.PortBinding
+}
+
+// The facctory function creates a new PublishedPorts instance based on the given port specifications
+func createPublishedPorts(specs []string) (*PublishedPorts, error) {
+
+	// If specs is empty, initialize the maps with capacity 1 and returns a new PublishedPorts instance
+	if  len(specs) == 0 {
+		var newExposedPorts = make(map[nat.Port]struct{}, 1)
+		var newPortBindings = make(map[nat.Port][]nat.PortBinding, 1)
+		return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, nil
+	}
+
+	//  parse the port specifications using nat.ParsePortSpecs and returns the result.
+	newExposedPorts, newPortBindings, err := nat.ParsePortSpecs(specs)
+	return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, err
+}
+
+// Create a new PublishedPort structure, with all host ports are changed by a fixed  'offset'
+func (p PublishedPorts) Offset(offset int) (*PublishedPorts) {
+	var newExposedPorts = make(map[nat.Port]struct{}, len(p.ExposedPorts))
+	var newPortBindings = make(map[nat.Port][]nat.PortBinding, len(p.PortBindings))
+
+	for k, v := range p.ExposedPorts {
+        newExposedPorts[k] = v
+	}
+
+	for k, v := range p.PortBindings {
+		bindings := make([]nat.PortBinding, len(v))
+		for i, b := range v {
+			port, _ := nat.ParsePort(b.HostPort)
+			bindings[i].HostIP = b.HostIP
+			bindings[i].HostPort = fmt.Sprintf("%d",  port + offset)
+		}
+		newPortBindings[k] = bindings
+	}
+
+	return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}
+}
+
+// Create a new PublishedPort struct with one more port, based on 'portSpec' string
+func (p *PublishedPorts) AddPort(portSpec string) (*PublishedPorts, error) {
+	portMappings, err := nat.ParsePortSpec(portSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	var newExposedPorts = make(map[nat.Port]struct{}, len(p.ExposedPorts) + 1)
+	var newPortBindings = make(map[nat.Port][]nat.PortBinding, len(p.PortBindings) + 1)
+
+	// Populate the new maps
+	for k, v := range p.ExposedPorts {
+              newExposedPorts[k] = v
+	}
+
+	for k, v := range p.PortBindings {
+              newPortBindings[k] = v
+	}
+
+	// Add new ports
+	for _, portMapping := range portMappings {
+		port := portMapping.Port
+		if _, exists := newExposedPorts[port]; !exists {
+			newExposedPorts[port] = struct{}{}
+		}
+
+		bslice, exists := newPortBindings[port];
+		if !exists {
+			bslice = []nat.PortBinding{}
+		}
+		newPortBindings[port] = append(bslice, portMapping.Binding)
+	}
+
+	return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, nil
+}
+
+
 func startContainer(verbose bool, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (string, error) {
 
 	ctx := context.Background()

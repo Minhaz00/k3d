@@ -98,6 +98,11 @@ func CreateCluster(c *cli.Context) error {
 		k3sServerArgs = append(k3sServerArgs, c.StringSlice("server-arg")...)
 	}
 
+	publishedPorts, err := createPublishedPorts(c.StringSlice("publish"))
+	if (err != nil) {
+		log.Fatalf("ERROR: failed to parse the publish parameter.\n%+v", err)
+	}
+
 	// createServer creates a container and returns the container Id
 	log.Printf("Creating cluster [%s]", c.String("name"))
 	dockerID, err := createServer(
@@ -108,6 +113,7 @@ func CreateCluster(c *cli.Context) error {
 		env,
 		c.String("name"),
 		strings.Split(c.String("volume"), ","),
+		publishedPorts,
 	)
 	if err != nil {
 		log.Fatalf("ERROR: failed to create cluster\n%+v", err)

@@ -137,7 +137,7 @@ func startContainer(verbose bool, config *container.Config, hostConfig *containe
 }
 
 // This function create and start Docker containers for clusters
-func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string) (string, error) {
+func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string,  pPorts *PublishedPorts) (string, error) {
 	log.Printf("Creating server using %s...\n", image)
 
 	// containerLabels sets metadata labels for the container
@@ -148,16 +148,15 @@ func createServer(verbose bool, image string, port string, args []string, env []
 	containerLabels["cluster"] = name
 
 	containerName := fmt.Sprintf("k3d-%s-server", name)
-	containerPort := nat.Port(fmt.Sprintf("%s/tcp", port))
+	
+	apiPortSpec := fmt.Sprintf("0.0.0.0:%s:%s/tcp", port, port)
+	serverPublishedPorts, err := pPorts.AddPort(apiPortSpec)
+	if (err != nil) {
+		log.Fatalf("Error: failed to parse API port spec %s \n%+v", apiPortSpec, err)
+	}
+
 	hostConfig := &container.HostConfig{
-		PortBindings: nat.PortMap{
-			containerPort: []nat.PortBinding{
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: port,
-				},
-			},
-		},
+		PortBindings: serverPublishedPorts.PortBindings,
 		Privileged: true,
 	}
 
@@ -177,9 +176,7 @@ func createServer(verbose bool, image string, port string, args []string, env []
 		Hostname: containerName,
 		Image:    image,
 		Cmd:      append([]string{"server"}, args...), // sets the command to be executed in the container
-		ExposedPorts: nat.PortSet{ // defines the ports to expose from the container to the host.
-			containerPort: struct{}{},
-		},
+		ExposedPorts: serverPublishedPorts.ExposedPorts,
 		Env:    env,
 		Labels: containerLabels,
 	}

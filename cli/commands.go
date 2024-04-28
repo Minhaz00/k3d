@@ -22,7 +22,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-
 // CheckTools checks if the docker API server is responding
 func CheckTools(c *cli.Context) error {
 	log.Print("Checking docker...")
@@ -64,20 +63,13 @@ func CreateCluster(c *cli.Context) error {
 		env = append(env, c.StringSlice("env")...)
 	}
 	k3sClusterSecret := ""
-	k3sToken := "" //////////////////////
-
-
+	k3sToken := ""
 	if c.Int("workers") > 0 {
 		k3sClusterSecret = fmt.Sprintf("K3S_CLUSTER_SECRET=%s", GenerateRandomString(20))
 		env = append(env, k3sClusterSecret)
-		
-		
-		
+
 		k3sToken = fmt.Sprintf("K3S_TOKEN=%s", GenerateRandomString(20))
 		env = append(env, k3sToken)
-
-
-
 	}
 
 	// k3s server arguments
@@ -243,7 +235,7 @@ func DeleteCluster(c *cli.Context) error {
 
 // StopCluster stops a running cluster container (restartable)
 func StopCluster(c *cli.Context) error {
-	
+
 	// operate on one or all cluster
 	clusters := make(map[string]cluster)
 	if !c.Bool("all") {
@@ -286,7 +278,7 @@ func StopCluster(c *cli.Context) error {
 		if err := docker.ContainerStop(ctx, cluster.server.ID, container.StopOptions{}); err != nil {
 			return fmt.Errorf("ERROR: Couldn't stop server for cluster %s\n%+v", cluster.name, err)
 		}
- 
+
 		log.Printf("SUCCESS: Stopped cluster [%s]", cluster.name)
 	}
 	return nil
@@ -294,7 +286,7 @@ func StopCluster(c *cli.Context) error {
 
 // StartCluster starts a stopped cluster container
 func StartCluster(c *cli.Context) error {
-	
+
 	// operate on one or all cluster
 	clusters := make(map[string]cluster)
 	if !c.Bool("all") {
@@ -313,7 +305,7 @@ func StartCluster(c *cli.Context) error {
 			clusters[key] = value
 		}
 	}
-	
+
 	ctx := context.Background()
 	docker, err := client.NewClientWithOpts()
 	if err != nil {
@@ -409,8 +401,5 @@ func GetKubeConfig(c *cli.Context) error {
 	// output kubeconfig file path to stdout
 	fmt.Println(destPath)
 
-
 	return nil
 }
-
-

@@ -22,14 +22,14 @@ import (
 
 type PublishedPorts struct {
 	ExposedPorts map[nat.Port]struct{}
-	PortBindings   map[nat.Port][]nat.PortBinding
+	PortBindings map[nat.Port][]nat.PortBinding
 }
 
 // The facctory function creates a new PublishedPorts instance based on the given port specifications
 func createPublishedPorts(specs []string) (*PublishedPorts, error) {
 
 	// If specs is empty, initialize the maps with capacity 1 and returns a new PublishedPorts instance
-	if  len(specs) == 0 {
+	if len(specs) == 0 {
 		var newExposedPorts = make(map[nat.Port]struct{}, 1)
 		var newPortBindings = make(map[nat.Port][]nat.PortBinding, 1)
 		return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, nil
@@ -41,12 +41,12 @@ func createPublishedPorts(specs []string) (*PublishedPorts, error) {
 }
 
 // Create a new PublishedPort structure, with all host ports are changed by a fixed  'offset'
-func (p PublishedPorts) Offset(offset int) (*PublishedPorts) {
+func (p PublishedPorts) Offset(offset int) *PublishedPorts {
 	var newExposedPorts = make(map[nat.Port]struct{}, len(p.ExposedPorts))
 	var newPortBindings = make(map[nat.Port][]nat.PortBinding, len(p.PortBindings))
 
 	for k, v := range p.ExposedPorts {
-        newExposedPorts[k] = v
+		newExposedPorts[k] = v
 	}
 
 	for k, v := range p.PortBindings {
@@ -54,7 +54,7 @@ func (p PublishedPorts) Offset(offset int) (*PublishedPorts) {
 		for i, b := range v {
 			port, _ := nat.ParsePort(b.HostPort)
 			bindings[i].HostIP = b.HostIP
-			bindings[i].HostPort = fmt.Sprintf("%d",  port + offset)
+			bindings[i].HostPort = fmt.Sprintf("%d", port+offset)
 		}
 		newPortBindings[k] = bindings
 	}
@@ -69,16 +69,16 @@ func (p *PublishedPorts) AddPort(portSpec string) (*PublishedPorts, error) {
 		return nil, err
 	}
 
-	var newExposedPorts = make(map[nat.Port]struct{}, len(p.ExposedPorts) + 1)
-	var newPortBindings = make(map[nat.Port][]nat.PortBinding, len(p.PortBindings) + 1)
+	var newExposedPorts = make(map[nat.Port]struct{}, len(p.ExposedPorts)+1)
+	var newPortBindings = make(map[nat.Port][]nat.PortBinding, len(p.PortBindings)+1)
 
 	// Populate the new maps
 	for k, v := range p.ExposedPorts {
-              newExposedPorts[k] = v
+		newExposedPorts[k] = v
 	}
 
 	for k, v := range p.PortBindings {
-              newPortBindings[k] = v
+		newPortBindings[k] = v
 	}
 
 	// Add new ports
@@ -88,7 +88,7 @@ func (p *PublishedPorts) AddPort(portSpec string) (*PublishedPorts, error) {
 			newExposedPorts[port] = struct{}{}
 		}
 
-		bslice, exists := newPortBindings[port];
+		bslice, exists := newPortBindings[port]
 		if !exists {
 			bslice = []nat.PortBinding{}
 		}
@@ -97,7 +97,6 @@ func (p *PublishedPorts) AddPort(portSpec string) (*PublishedPorts, error) {
 
 	return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, nil
 }
-
 
 func startContainer(verbose bool, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string) (string, error) {
 
@@ -137,7 +136,7 @@ func startContainer(verbose bool, config *container.Config, hostConfig *containe
 }
 
 // This function create and start Docker containers for clusters
-func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string,  pPorts *PublishedPorts) (string, error) {
+func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string, pPorts *PublishedPorts) (string, error) {
 	log.Printf("Creating server using %s...\n", image)
 
 	// containerLabels sets metadata labels for the container
@@ -148,16 +147,16 @@ func createServer(verbose bool, image string, port string, args []string, env []
 	containerLabels["cluster"] = name
 
 	containerName := fmt.Sprintf("k3d-%s-server", name)
-	
+
 	apiPortSpec := fmt.Sprintf("0.0.0.0:%s:%s/tcp", port, port)
 	serverPublishedPorts, err := pPorts.AddPort(apiPortSpec)
-	if (err != nil) {
+	if err != nil {
 		log.Fatalf("Error: failed to parse API port spec %s \n%+v", apiPortSpec, err)
 	}
 
 	hostConfig := &container.HostConfig{
 		PortBindings: serverPublishedPorts.PortBindings,
-		Privileged: true,
+		Privileged:   true,
 	}
 
 	if len(volumes) > 0 && volumes[0] != "" {
@@ -173,12 +172,12 @@ func createServer(verbose bool, image string, port string, args []string, env []
 	}
 
 	containerConfig := &container.Config{
-		Hostname: containerName,
-		Image:    image,
-		Cmd:      append([]string{"server"}, args...), // sets the command to be executed in the container
+		Hostname:     containerName,
+		Image:        image,
+		Cmd:          append([]string{"server"}, args...), // sets the command to be executed in the container
 		ExposedPorts: serverPublishedPorts.ExposedPorts,
-		Env:    env,
-		Labels: containerLabels,
+		Env:          env,
+		Labels:       containerLabels,
 	}
 
 	id, err := startContainer(verbose, containerConfig, hostConfig, networkingConfig, containerName)
@@ -191,7 +190,7 @@ func createServer(verbose bool, image string, port string, args []string, env []
 }
 
 // This function create and start Docker containers for workers
-func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix int, serverPort string) (string, error) {
+func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix int, serverPort string, pPorts *PublishedPorts) (string, error) {
 
 	containerLabels := make(map[string]string)
 	containerLabels["app"] = "k3d"
@@ -203,12 +202,15 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 
 	env = append(env, fmt.Sprintf("K3S_URL=https://k3d-%s-server:%s", name, serverPort))
 
+	workerPublishedPorts := pPorts.Offset(postfix + 1)
+
 	hostConfig := &container.HostConfig{
 		Tmpfs: map[string]string{
 			"/run":     "",
 			"/var/run": "",
 		},
-		Privileged: true,
+		PortBindings: workerPublishedPorts.PortBindings,
+		Privileged:   true,
 	}
 
 	if len(volumes) > 0 && volumes[0] != "" {
@@ -224,10 +226,11 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 	}
 
 	containerConfig := &container.Config{
-		Hostname: containerName,
-		Image:    image,
-		Env:      env,
-		Labels:   containerLabels,
+		Hostname:     containerName,
+		Image:        image,
+		Env:          env,
+		Labels:       containerLabels,
+		ExposedPorts: workerPublishedPorts.ExposedPorts,
 	}
 
 	id, err := startContainer(verbose, containerConfig, hostConfig, networkingConfig, containerName)

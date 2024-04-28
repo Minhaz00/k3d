@@ -59,7 +59,6 @@ func startContainer(verbose bool, config *container.Config, hostConfig *containe
 }
 
 
-
 // This function create and start Docker containers for clusters
 func createServer(verbose bool, image string, port string, args []string, env []string, name string, volumes []string) (string, error) {
 	log.Printf("Creating server using %s...\n", image)
@@ -162,7 +161,6 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 
 	return id, nil
 }
-
 
 
 // removeContainer tries to rm a container, selected by Docker ID, and does a rm -f if it fails (e.g. if container is still running)

@@ -81,7 +81,7 @@ func printClusters(all bool) {
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
 	table.SetHeader([]string{"NAME", "IMAGE", "STATUS", "WORKERS"})
 
-	tableEmpty := true;
+	tableEmpty := true
 
 	for _, cluster := range clusters {
 		workersRunning := 0
@@ -138,6 +138,7 @@ func getClusters() (map[string]cluster, error) {
 	// for all servers created by k3d, get workers and cluster information
 	for _, server := range k3dServers {
 		filters.Add("label", fmt.Sprintf("cluster=%s", server.Labels["cluster"]))
+		clusterName := server.Labels["cluster"]
 
 		// retrieve a list of worker containers (workers)
 		workers, err := docker.ContainerList(ctx, container.ListOptions{
@@ -145,7 +146,7 @@ func getClusters() (map[string]cluster, error) {
 			Filters: filters,
 		})
 		if err != nil {
-			log.Printf("WARNING: couldn't get worker containers for cluster %s\n%+v", server.Labels["cluster"], err)
+			log.Printf("WARNING: couldn't get worker containers for cluster %s\n%+v", clusterName, err)
 		}
 
 		// Extract server ports (serverPorts) from container port mappings (server.Ports)
@@ -155,8 +156,8 @@ func getClusters() (map[string]cluster, error) {
 		}
 
 		// Populate cluster information (cluster) with relevant attributes
-		clusters[server.Labels["cluster"]] = cluster{
-			name:        server.Labels["cluster"],
+		clusters[clusterName] = cluster{
+			name:        clusterName,
 			image:       server.Image,
 			status:      server.State,
 			serverPorts: serverPorts,
@@ -165,8 +166,9 @@ func getClusters() (map[string]cluster, error) {
 		}
 
 		// clear label filters before searching for next cluster
-		filters.Del("label", fmt.Sprintf("cluster=%s", server.Labels["cluster"]))
+		filters.Del("label", fmt.Sprintf("cluster=%s", clusterName))
 	}
+	
 	return clusters, nil
 }
 

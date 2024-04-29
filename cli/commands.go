@@ -97,6 +97,10 @@ func CreateCluster(c *cli.Context) error {
 	}
 
 	// k3s server arguments
+	// TODO: --port will soon be --api-port since we want to re-use --port for arbitrary port mappings
+	if c.IsSet("port") {
+		log.Println("WARNING: --port will soon be used for arbitrary port-mappings. It's original functionality can then be used via --api-port.")
+	}
 	k3sServerArgs := []string{"--https-listen-port", c.String("port")}
 	if c.IsSet("server-arg") || c.IsSet("x") {
 		k3sServerArgs = append(k3sServerArgs, c.StringSlice("server-arg")...)
@@ -107,7 +111,6 @@ func CreateCluster(c *cli.Context) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 
 	// createServer creates a container and returns the container Id
 	log.Printf("Creating cluster [%s]", c.String("name"))

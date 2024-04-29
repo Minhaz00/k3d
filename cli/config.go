@@ -78,6 +78,7 @@ func printClusters(all bool) {
 
 	// Initialize a new tablewriter instance to create a formatted table for displaying cluster information.
 	table := tablewriter.NewWriter(os.Stdout)
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
 	table.SetHeader([]string{"NAME", "IMAGE", "STATUS", "WORKERS"})
 
 	for _, cluster := range clusters {

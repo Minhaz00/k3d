@@ -48,13 +48,13 @@ func mapNodesToPortSpecs(specs []string) (map[string][]string, error) {
 // The factory function for PublishedPorts
 // creating a PublishedPorts struct based on the provided port specifications
 // Parameters:
-//  - specs []string: A slice of strings representing the port specifications. Each string should follow the format:
-//    <host>:<hostPort>:<containerPort>[/<protocol>][@<node>]
-//    - <host> is an optional hostname or IP address.
-//    - <hostPort> is an optional host port number.
-//    - <containerPort> is the container port number.
-//    - <protocol> is an optional protocol (either "udp" or "tcp").
-//    - <node> is an optional node name or role.
+//   - specs []string: A slice of strings representing the port specifications. Each string should follow the format:
+//     <host>:<hostPort>:<containerPort>[/<protocol>][@<node>]
+//   - <host> is an optional hostname or IP address.
+//   - <hostPort> is an optional host port number.
+//   - <containerPort> is the container port number.
+//   - <protocol> is an optional protocol (either "udp" or "tcp").
+//   - <node> is an optional node name or role.
 func CreatePublishedPorts(specs []string) (*PublishedPorts, error) {
 	// If no port specifications are provided, it creates a default PublishedPorts with an empty ExposedPorts and PortBindings map.
 	if len(specs) == 0 {
@@ -67,17 +67,16 @@ func CreatePublishedPorts(specs []string) (*PublishedPorts, error) {
 	return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, err
 }
 
-
 // validatePortSpecs matches the provided port specs against a set of rules to enable early exit if something is wrong
-// It checks if the specification matches the following format: 
+// It checks if the specification matches the following format:
 // <host>:<hostPort>:<containerPort>[/<protocol>][@<node>]*
 // Example ==> specs := []string{"192.168.0.1:8080:80", "3000/tcp", "@node1:8080:80"}
 func validatePortSpecs(specs []string) error {
-	// regex matching (no sophisticated IP/Hostname matching at the moment)
-	regex := regexp.MustCompile(`^(((?P<host>[\w\.]+)?:)?((?P<hostPort>[0-9]{0,6}):)?(?P<containerPort>[0-9]{1,6}))((/(?P<protocol>udp|tcp))?(?P<nodes>(@(?P<node>[\w-]+))*))$`)
+	// regex matching (no sophisticated IP matching at the moment)
+	regex := regexp.MustCompile(`^(((?P<ip>[\d\.]+)?:)?((?P<hostPort>[0-9]{0,6}):)?(?P<containerPort>[0-9]{1,6}))((/(?P<protocol>udp|tcp))?(?P<nodes>(@(?P<node>[\w-]+))+))$`)
 	for _, spec := range specs {
 		if !regex.MatchString(spec) {
-			return fmt.Errorf("[ERROR] Provided port spec [%s] didn't match format specification", spec)
+			return fmt.Errorf("[ERROR] Provided port spec [%s] didn't match format specification (`[ip:][host-port:]container-port[/protocol]@node-specifier`)", spec)
 		}
 	}
 	return nil
@@ -85,13 +84,14 @@ func validatePortSpecs(specs []string) error {
 
 // extractNodes separates the node specification from the actual port specs
 // Example 1:
-// 	nodes, portSpec := extractNodes("@node1:8080:80")
-// 	// nodes: [node1]
-// 	// portSpec: "8080:80"
 //
-// 	nodes, portSpec := extractNodes("192.168.0.1:8080:80")
-// 	// nodes: [default]
-// 	// portSpec: "192.168.0.1:8080:80"
+//	nodes, portSpec := extractNodes("@node1:8080:80")
+//	// nodes: [node1]
+//	// portSpec: "8080:80"
+//
+//	nodes, portSpec := extractNodes("192.168.0.1:8080:80")
+//	// nodes: [default]
+//	// portSpec: "192.168.0.1:8080:80"
 func extractNodes(spec string) ([]string, string) {
 	// extract nodes
 	nodes := []string{}
@@ -163,7 +163,6 @@ func (p *PublishedPorts) AddPort(portSpec string) (*PublishedPorts, error) {
 
 	return &PublishedPorts{ExposedPorts: newExposedPorts, PortBindings: newPortBindings}, nil
 }
-
 
 // MergePortSpecs merges published ports for a given node
 func MergePortSpecs(nodeToPortSpecMap map[string][]string, role, name string) ([]string, error) {

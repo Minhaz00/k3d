@@ -69,7 +69,6 @@ func createServer(verbose bool, image string, port string, args []string, env []
 
 	containerName := fmt.Sprintf("k3d-%s-server", name)
 
-	
 	// ports to be assigned to the server belong to roles
 	// all, server or <server-container-name>
 	serverPorts, err := MergePortSpecs(nodeToPortSpecMap, "server", containerName)
@@ -134,10 +133,10 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 
 	env = append(env, fmt.Sprintf("K3S_URL=https://k3d-%s-server:%s", name, serverPort))
 
-	
 	// ports to be assigned to the server belong to roles
 	// all, server or <server-container-name>
 	workerPorts, err := MergePortSpecs(nodeToPortSpecMap, "worker", containerName)
+	fmt.Printf("%s -> ports: %+v\n", containerName, workerPorts)
 	if err != nil {
 		return "", err
 	}

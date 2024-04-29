@@ -159,7 +159,7 @@ func getClusters() (map[string]cluster, error) {
 		clusters[clusterName] = cluster{
 			name:        clusterName,
 			image:       server.Image,
-			status:      server.State,
+			status:      getClusterStatus(server, workers),
 			serverPorts: serverPorts,
 			server:      server,
 			workers:     workers,
@@ -168,7 +168,7 @@ func getClusters() (map[string]cluster, error) {
 		// clear label filters before searching for next cluster
 		filters.Del("label", fmt.Sprintf("cluster=%s", clusterName))
 	}
-	
+
 	return clusters, nil
 }
 
@@ -176,4 +176,24 @@ func getClusters() (map[string]cluster, error) {
 func getCluster(name string) (cluster, error) {
 	clusters, err := getClusters()
 	return clusters[name], err
+}
+
+
+// Classify cluster state: Running, Stopped or Abnormal
+func getClusterStatus(server types.Container, workers []types.Container) (string) {
+	// The cluster is in the abnromal state when server state and the worker states don't agree
+	for _, w := range workers {
+		if w.State != server.State {
+			return "unhealthy"
+		}
+	}
+
+	switch server.State {
+	// All containers in this state are most likely as the result of running the "k3d stop" command
+	case "exited":  
+		return "stopped"
+	}
+
+
+	return server.State
 }

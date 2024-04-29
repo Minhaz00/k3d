@@ -81,6 +81,8 @@ func printClusters(all bool) {
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
 	table.SetHeader([]string{"NAME", "IMAGE", "STATUS", "WORKERS"})
 
+	tableEmpty := true;
+
 	for _, cluster := range clusters {
 		workersRunning := 0
 		for _, worker := range cluster.workers {
@@ -92,11 +94,15 @@ func printClusters(all bool) {
 		clusterData := []string{cluster.name, cluster.image, cluster.status, workerData}
 		if cluster.status == "running" || all {
 			table.Append(clusterData)
+			tableEmpty = false
 		}
 	}
 
 	// Render the table to display the formatted cluster information in the console
-	table.Render()
+	if !tableEmpty {
+		table.Render()
+	}
+
 }
 
 func getClusters() (map[string]cluster, error) {

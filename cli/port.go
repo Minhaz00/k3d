@@ -15,6 +15,7 @@ type PublishedPorts struct {
 }
 
 // mapping a node role to groups that should be applied to it
+// map: role -> array of groups it belongs
 var nodeRuleGroupsMap = map[string][]string{
 	"worker": []string{"all", "workers"},
 	"server": []string{"all", "server", "master"},
@@ -24,6 +25,10 @@ var nodeRuleGroupsMap = map[string][]string{
 const defaultNodes = "all"
 
 // mapNodesToPortSpecs maps nodes to portSpecs
+//
+//	 example :
+//	 -p 192.168.1.100:8080:80/tcp@node1 -p 192.168.1.101:8081:80/tcp@node2
+//	specs = ["192.168.1.100:8080:80/tcp@node1", "192.168.1.101:8081:80/tcp@node2"]
 func mapNodesToPortSpecs(specs []string) (map[string][]string, error) {
 
 	if err := validatePortSpecs(specs); err != nil {
@@ -39,8 +44,6 @@ func mapNodesToPortSpecs(specs []string) (map[string][]string, error) {
 			nodeToPortSpecMap[node] = append(nodeToPortSpecMap[node], portSpec)
 		}
 	}
-
-	fmt.Printf("nodeToPortSpecMap: %+v\n", nodeToPortSpecMap)
 
 	return nodeToPortSpecMap, nil
 }
@@ -83,7 +86,7 @@ func validatePortSpecs(specs []string) error {
 }
 
 // extractNodes separates the node specification from the actual port specs
-// Example 1:
+// Example:
 //
 //	nodes, portSpec := extractNodes("@node1:8080:80")
 //	// nodes: [node1]
@@ -165,6 +168,9 @@ func (p *PublishedPorts) AddPort(portSpec string) (*PublishedPorts, error) {
 }
 
 // MergePortSpecs merges published ports for a given node
+// nodeToPortSpecMap => map: node -> []portSpec
+// role => server or worker
+// name => container name
 func MergePortSpecs(nodeToPortSpecMap map[string][]string, role, name string) ([]string, error) {
 
 	portSpecs := []string{}

@@ -52,7 +52,7 @@ func main() {
 				},
 				cli.StringFlag{
 					Name:  "volume, v",
-					Usage: "Mount one or more volumes into every node of the cluster (Docker notation: `source:destination[,source:destination]`)",
+					Usage: "Mount one or more volumes into every node of the cluster (Docker notation: `source:destination`)",
 				},
 				cli.StringSliceFlag{
 					Name:  "publish, add-port",

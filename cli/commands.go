@@ -128,7 +128,7 @@ func CreateCluster(c *cli.Context) error {
 		k3sServerArgs,
 		env,
 		c.String("name"),
-		strings.Split(c.String("volume"), ","),
+		c.StringSlice("volume"),
 		portmap,
 	)
 	if err != nil {
@@ -206,7 +206,7 @@ func CreateCluster(c *cli.Context) error {
 				k3sWorkerArgs,
 				env,
 				c.String("name"),
-				strings.Split(c.String("volume"), ","),
+				c.StringSlice("volume"),
 				i,
 				c.String("api-port"),
 				portmap,

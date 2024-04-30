@@ -3,7 +3,6 @@ package run
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 
 	"github.com/docker/go-connections/nat"
@@ -91,11 +90,18 @@ func CreatePublishedPorts(specs []string) (*PublishedPorts, error) {
 // <host>:<hostPort>:<containerPort>[/<protocol>][@<node>]*
 // Example ==> specs := []string{"192.168.0.1:8080:80", "3000/tcp", "@node1:8080:80"}
 func validatePortSpecs(specs []string) error {
-	// regex matching (no sophisticated IP matching at the moment)
-	regex := regexp.MustCompile(`^(((?P<ip>[\d\.]+)?:)?((?P<hostPort>[0-9]{0,6}):)?(?P<containerPort>[0-9]{1,6}))((/(?P<protocol>udp|tcp))?(?P<nodes>(@(?P<node>[\w-]+))+))$`)
 	for _, spec := range specs {
-		if !regex.MatchString(spec) {
-			return fmt.Errorf("[ERROR] Provided port spec [%s] didn't match format specification (`[ip:][host-port:]container-port[/protocol]@node-specifier`)", spec)
+		atSplit := strings.Split(spec, "@")
+		_, err := nat.ParsePortSpec(atSplit[0])
+		if err != nil {
+			return fmt.Errorf("ERROR: Invalid port specification [%s] in port mapping [%s]\n%+v", atSplit[0], spec, err)
+		}
+		if len(atSplit) > 0 {
+			for i := 1; i < len(atSplit); i++ {
+				if err := ValidateHostname(atSplit[i]); err != nil {
+					return fmt.Errorf("ERROR: Invalid node-specifier [%s] in port mapping [%s]\n%+v", atSplit[i], spec, err)
+				}
+			}
 		}
 	}
 	return nil

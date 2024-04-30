@@ -52,7 +52,7 @@ func CheckTools(c *cli.Context) error {
 // CreateCluster creates a new single-node cluster container and initializes the cluster directory
 func CreateCluster(c *cli.Context) error {
 
-	if err := checkClusterName(c.String("name")); err != nil {
+	if err := CheckClusterName(c.String("name")); err != nil {
 		return err
 	}
 

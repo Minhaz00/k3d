@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
@@ -29,11 +30,15 @@ const defaultNodes = "all"
 //	 example :
 //	 -p 192.168.1.100:8080:80/tcp@node1 -p 192.168.1.101:8081:80/tcp@node2
 //	specs = ["192.168.1.100:8080:80/tcp@node1", "192.168.1.101:8081:80/tcp@node2"]
-func mapNodesToPortSpecs(specs []string) (map[string][]string, error) {
+func mapNodesToPortSpecs(specs []string, createdNodes []string) (map[string][]string, error) {
 
 	if err := validatePortSpecs(specs); err != nil {
 		return nil, err
 	}
+
+	// check node-specifier possibilitites
+	possibleNodeSpecifiers := []string{"all", "workers", "server", "master"}
+	possibleNodeSpecifiers = append(possibleNodeSpecifiers, createdNodes...)
 
 	nodeToPortSpecMap := make(map[string][]string)
 
@@ -41,14 +46,25 @@ func mapNodesToPortSpecs(specs []string) (map[string][]string, error) {
 		nodes, portSpec := extractNodes(spec)
 
 		for _, node := range nodes {
-			nodeToPortSpecMap[node] = append(nodeToPortSpecMap[node], portSpec)
+			// check if node-specifier is valid (either a role or a name) and append to list if matches
+			nodeFound := false
+			for _, name := range possibleNodeSpecifiers {
+				if node == name {
+					nodeFound = true
+					nodeToPortSpecMap[node] = append(nodeToPortSpecMap[node], portSpec)
+					break
+				}
+			}
+			if !nodeFound {
+				log.Printf("WARNING: Unknown node-specifier [%s] in port mapping entry [%s]", node, spec)
+			}
 		}
 	}
 
 	return nodeToPortSpecMap, nil
 }
 
-// The factory function for PublishedPorts
+// CreatePublishedPorts is the factory function for PublishedPorts
 // creating a PublishedPorts struct based on the provided port specifications
 // Parameters:
 //   - specs []string: A slice of strings representing the port specifications. Each string should follow the format:

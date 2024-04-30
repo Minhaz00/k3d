@@ -16,6 +16,10 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+const (
+	defaultContainerNamePrefix = "k3d"
+)
+
 type cluster struct {
 	name        string
 	image       string
@@ -24,6 +28,30 @@ type cluster struct {
 	server      types.Container
 	workers     []types.Container
 }
+
+
+// GetContainerName generates the container names
+func GetContainerName(role, clusterName string, postfix int) string {
+	if postfix >= 0 {
+		return fmt.Sprintf("%s-%s-%s-%d", defaultContainerNamePrefix, clusterName, role, postfix)
+	}
+
+	// for server 
+	return fmt.Sprintf("%s-%s-%s", defaultContainerNamePrefix, clusterName, role)
+}
+
+// GetAllContainerNames returns a list of all containernames that will be created
+func GetAllContainerNames(clusterName string, serverCount, workerCount int) []string {
+	names := []string{}
+	for postfix := 0; postfix < serverCount; postfix++ {
+		names = append(names, GetContainerName("server", clusterName, postfix))
+	}
+	for postfix := 0; postfix < workerCount; postfix++ {
+		names = append(names, GetContainerName("worker", clusterName, postfix))
+	}
+	return names
+}
+
 
 // createDirIfNotExists checks for the existence of a directory and creates it along with all required parents if not.
 // It returns an error if the directory (or parents) couldn't be created and nil if it worked fine or if the path already exists.

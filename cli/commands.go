@@ -22,7 +22,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-const defaultRegistry = "docker.io"
+const (
+	defaultRegistry    = "docker.io"
+	defaultServerCount = 1
+)
+
 
 // CheckTools checks if the docker API server is responding
 func CheckTools(c *cli.Context) error {
@@ -110,7 +114,7 @@ func CreateCluster(c *cli.Context) error {
 
 	// new port map
 	// protmap ==> map[string][]string  ==> key: node-name, value: slice of portSpec
-	portmap, err := mapNodesToPortSpecs(c.StringSlice("publish"))
+	portmap, err := mapNodesToPortSpecs(c.StringSlice("publish"), GetAllContainerNames(c.String("name"), defaultServerCount, c.Int("workers")))
 	if err != nil {
 		log.Fatal(err)
 	}

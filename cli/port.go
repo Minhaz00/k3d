@@ -17,8 +17,8 @@ type PublishedPorts struct {
 // mapping a node role to groups that should be applied to it
 // map: role -> array of groups it belongs
 var nodeRuleGroupsMap = map[string][]string{
-	"worker": []string{"all", "workers"},
-	"server": []string{"all", "server", "master"},
+	"worker": {"all", "workers"},
+	"server": {"all", "server", "master"},
 }
 
 // defaultNodes describes the type of nodes on which a port should be exposed by default

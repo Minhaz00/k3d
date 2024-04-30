@@ -23,7 +23,7 @@ func main() {
 	// app.Version = "v0.3.0"
 	app.Version = version.GetVersion()
 	app.Authors = []cli.Author{
-		cli.Author{
+		{
 			Name:  "Minhaz",
 			Email: "minhaz.jisun@gmail.com",
 		},

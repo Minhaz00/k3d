@@ -220,7 +220,13 @@ func CreateCluster(c *cli.Context) error {
 				c.Int("port-auto-offset"),
 			)
 			if err != nil {
-				return fmt.Errorf("ERROR: failed to create worker node for cluster %s\n%+v", c.String("name"), err)
+				log.Printf("ERROR: failed to create worker node for cluster %s\n%+v", c.String("name"), err)
+				// clean up all the resources that are already allocated by deleting the cluster
+				delErr := DeleteCluster(c)
+				if delErr != nil {
+					return delErr
+				}
+				os.Exit(1)
 			}
 			log.Printf("Created worker with ID %s\n", workerID)
 		}

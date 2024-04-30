@@ -56,6 +56,14 @@ func CreateCluster(c *cli.Context) error {
 		return err
 	}
 
+	// Check for cluster existence before using a name to create a new cluster
+	if cluster, err := getClusters(false, c.String("name")); err != nil {
+		return err
+	} else if len(cluster) != 0 {
+		// A cluster exists with the same name. Return with an error.
+		return fmt.Errorf("ERROR: Cluster %s already exists", c.String("name"))
+	}
+
 	// define image
 	image := c.String("image")
 	if c.IsSet("version") {

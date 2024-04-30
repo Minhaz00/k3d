@@ -57,7 +57,7 @@ func startContainer(verbose bool, config *container.Config, hostConfig *containe
 }
 
 // This function create and start Docker containers for clusters
-func createServer(verbose bool, image string, apiPort string, args []string, env []string, name string, volumes []string, nodeToPortSpecMap map[string][]string) (string, error) {
+func createServer(verbose bool, image string, apiPort string, args []string, env []string, name string, volumes []string, nodeToPortSpecMap map[string][]string, autoRestart bool) (string, error) {
 	log.Printf("Creating server using %s...\n", image)
 
 	// containerLabels sets metadata labels for the container
@@ -88,6 +88,10 @@ func createServer(verbose bool, image string, apiPort string, args []string, env
 	hostConfig := &container.HostConfig{
 		PortBindings: serverPublishedPorts.PortBindings,
 		Privileged:   true,
+	}
+
+	if autoRestart {
+		hostConfig.RestartPolicy.Name = "unless-stopped"
 	}
 
 	if len(volumes) > 0 && volumes[0] != "" {
@@ -121,7 +125,7 @@ func createServer(verbose bool, image string, apiPort string, args []string, env
 }
 
 // This function create and start Docker containers for workers
-func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix int, serverPort string, nodeToPortSpecMap map[string][]string, portAutoOffset int) (string, error) {
+func createWorker(verbose bool, image string, args []string, env []string, name string, volumes []string, postfix int, serverPort string, nodeToPortSpecMap map[string][]string, portAutoOffset int, autoRestart bool) (string, error) {
 
 	containerLabels := make(map[string]string)
 	containerLabels["app"] = "k3d"
@@ -157,6 +161,10 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 		},
 		PortBindings: workerPublishedPorts.PortBindings,
 		Privileged:   true,
+	}
+
+	if autoRestart {
+		hostConfig.RestartPolicy.Name = "unless-stopped"
 	}
 
 	if len(volumes) > 0 && volumes[0] != "" {

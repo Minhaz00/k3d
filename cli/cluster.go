@@ -90,7 +90,7 @@ func getClusterDir(name string) (string, error) {
 }
 
 // printClusters prints the names of existing clusters
-func printClusters(all bool) {
+func printClusters() {
 	// Retrieve the list of cluster names using getClusterNames
 	clusters, err := getClusters(true, "")
 	if err != nil {
@@ -107,8 +107,6 @@ func printClusters(all bool) {
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
 	table.SetHeader([]string{"NAME", "IMAGE", "STATUS", "WORKERS"})
 
-	tableEmpty := true
-
 	for _, cluster := range clusters {
 		workersRunning := 0
 		for _, worker := range cluster.workers {
@@ -118,16 +116,11 @@ func printClusters(all bool) {
 		}
 		workerData := fmt.Sprintf("%d/%d", workersRunning, len(cluster.workers))
 		clusterData := []string{cluster.name, cluster.image, cluster.status, workerData}
-		if cluster.status == "running" || all {
-			table.Append(clusterData)
-			tableEmpty = false
-		}
+		table.Append(clusterData)
 	}
 
 	// Render the table to display the formatted cluster information in the console
-	if !tableEmpty {
-		table.Render()
-	}
+	table.Render()
 
 }
 

@@ -143,7 +143,7 @@ func createWorker(verbose bool, image string, args []string, env []string, name 
 	if err != nil {
 		return "", err
 	}
-	
+
 	if portAutoOffset > 0 {
 		// TODO: add some checks before to print a meaningful log message saying that we cannot map multiple container ports
 		// to the same host port without a offset
@@ -197,7 +197,7 @@ func removeContainer(ID string) error {
 
 	options := container.RemoveOptions{
 		RemoveVolumes: true,
-		Force:true,
+		Force:         true,
 	}
 
 	// always force delete

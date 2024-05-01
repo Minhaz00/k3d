@@ -39,6 +39,20 @@ func main() {
 			Action:  run.CheckTools,
 		},
 
+		// bash starts a bash shell in the context of a running cluster
+		{
+			Name:  "bash",
+			Usage: "Start a bash subshell for a cluster",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: defaultK3sClusterName,
+					Usage: "Set a name for the cluster",
+				},
+			},
+			Action: run.Bash,
+		},
+
 		// create creates a new k3s cluster in docker container
 		{
 			Name:    "create",

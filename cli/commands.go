@@ -380,3 +380,7 @@ func GetKubeConfig(c *cli.Context) error {
 	fmt.Println(kubeConfigPath)
 	return nil
 }
+
+func Bash(c *cli.Context) error {
+	return bashShell(c.String("name"))
+}

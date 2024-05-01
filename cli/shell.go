@@ -12,7 +12,12 @@ func bashShell(cluster string) error {
 		return err
 	}
 
-	cmd := exec.Command("/bin/bash", "--noprofile", "--norc")
+	bashPath, err := exec.LookPath("bash")
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(bashPath, "--noprofile", "--norc")
 
 	// Set up stdio
 	cmd.Stdout = os.Stdout
